@@ -29,12 +29,13 @@ import com.csr460.iskipper_android.device.SerialAdapter;
 import cn.wch.ch34xuartdriver.CH34xUARTDriver;
 
 
-public class MainActivity extends AppCompatActivity
-        implements NavigationView.OnNavigationItemSelectedListener {
+public class MainActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener {
 
     private volatile Emulator emulator;
     private TextView channelTextView;
     private FloatingActionButton fab;
+    private static TextView output;
+
     private static final String USB_PERMISSION_STRING = "com.csr460.iskipper_android";
 
     @Override
@@ -49,23 +50,21 @@ public class MainActivity extends AppCompatActivity
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         channelSpinner.setAdapter(adapter);
         channelTextView = (TextView) findViewById(R.id.channelTextView);
+        output = (TextView) findViewById(R.id.output);
 
         fab = (FloatingActionButton) findViewById(R.id.fab);
         fab.setEnabled(false);
-        fab.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                if(emulator.changeChannel(IClickerChannel.valueOf(channelSpinner.getSelectedItem().toString())))
-                    showMessage("On channel " + channelSpinner.getSelectedItem().toString());
-                (new Thread(() -> {
-                    emulator.startCapture(new AnswerPacketHashMap(),false,true);
-                })).start();
-            }
+        fab.setOnClickListener(v -> {
+            if (emulator.changeChannel(IClickerChannel.valueOf(channelSpinner.getSelectedItem().toString())))
+                showMessage("On channel " + channelSpinner.getSelectedItem().toString());
+            (new Thread(() -> {
+                emulator.startCapture(new CaptureHandlerOnUI(new AnswerPacketHashMap(), this));
+            })).start();
         });
 
+
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
-        ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
-                this, drawer, toolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close);
+        ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(this, drawer, toolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close);
         drawer.addDrawerListener(toggle);
         toggle.syncState();
 
@@ -147,7 +146,7 @@ public class MainActivity extends AppCompatActivity
             (new Thread(() -> {
                 emulator.initialize();
                 this.runOnUiThread(() -> {
-                    if (emulator.isAvailable()){
+                    if (emulator.isAvailable()) {
                         showMessage("Success");
                         v.setEnabled(!emulator.isAvailable());
                         fab.setEnabled(emulator.isAvailable());
@@ -155,6 +154,10 @@ public class MainActivity extends AppCompatActivity
                 });
             })).start();
         });
+    }
+
+    public static void showStatis(int a, int b, int c, int d, int e, int total) {
+        output.setText("A: " + a + "  B: " + b + "  C:  " + c + "  D: " + d + "  E: " + e);
     }
 
     private void showMessage(String msg) {
