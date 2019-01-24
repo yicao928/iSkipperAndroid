@@ -6,4 +6,13 @@
     <string name="nav_header_subtitle">android.studio@android.com</string>
     <string name="nav_header_desc">Navigation header</string>
     <string name="action_settings">Settings</string>
+    <string-array name="channel_array">
+        <item>AA</item>
+        <item>BB</item>
+        <item>CC</item>
+        <item>DD</item>
+        <item>AB</item>
+        <item>AC</item>
+        <item>AD</item>
+    </string-array>
 </resources>

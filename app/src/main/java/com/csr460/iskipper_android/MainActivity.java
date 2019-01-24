@@ -14,13 +14,16 @@ import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.widget.Adapter;
+import android.widget.ArrayAdapter;
+import android.widget.Spinner;
+import android.widget.TextView;
 import android.widget.Toast;
 
 
 import com.csr460.iSkipper.emulator.Emulator;
 import com.csr460.iSkipper.handler.CaptureHandler;
 import com.csr460.iSkipper.support.AnswerPacketHashMap;
+import com.csr460.iSkipper.support.IClickerChannel;
 import com.csr460.iskipper_android.device.SerialAdapter;
 
 import cn.wch.ch34xuartdriver.CH34xUARTDriver;
@@ -30,6 +33,8 @@ public class MainActivity extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener {
 
     private volatile Emulator emulator;
+    private TextView channelTextView;
+    private FloatingActionButton fab;
     private static final String USB_PERMISSION_STRING = "com.csr460.iskipper_android";
 
     @Override
@@ -39,12 +44,22 @@ public class MainActivity extends AppCompatActivity
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
-        FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
+        Spinner channelSpinner = (Spinner) findViewById(R.id.channelSpinner);
+        ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(this, R.array.channel_array, android.R.layout.simple_spinner_item);
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        channelSpinner.setAdapter(adapter);
+        channelTextView = (TextView) findViewById(R.id.channelTextView);
+
+        fab = (FloatingActionButton) findViewById(R.id.fab);
+        fab.setEnabled(false);
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-                        .setAction("Action", null).show();
+                if(emulator.changeChannel(IClickerChannel.valueOf(channelSpinner.getSelectedItem().toString())))
+                    showMessage("On channel " + channelSpinner.getSelectedItem().toString());
+                (new Thread(() -> {
+                    emulator.startCapture(new AnswerPacketHashMap(),false,true);
+                })).start();
             }
         });
 
@@ -134,9 +149,9 @@ public class MainActivity extends AppCompatActivity
                 this.runOnUiThread(() -> {
                     if (emulator.isAvailable()){
                         showMessage("Success");
-                        emulator.startCapture(new AnswerPacketHashMap(),false,true);
+                        v.setEnabled(!emulator.isAvailable());
+                        fab.setEnabled(emulator.isAvailable());
                     }
-                    v.setEnabled(!emulator.isAvailable());
                 });
             })).start();
         });
