@@ -25,6 +25,13 @@ import com.csr460.iSkipper.handler.CaptureHandler;
 import com.csr460.iSkipper.support.AnswerPacketHashMap;
 import com.csr460.iSkipper.support.IClickerChannel;
 import com.csr460.iskipper_android.device.SerialAdapter;
+import com.github.mikephil.charting.charts.BarChart;
+import com.github.mikephil.charting.data.BarData;
+import com.github.mikephil.charting.data.BarDataSet;
+import com.github.mikephil.charting.data.BarEntry;
+
+import java.util.ArrayList;
+import java.util.List;
 
 import cn.wch.ch34xuartdriver.CH34xUARTDriver;
 
@@ -35,6 +42,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     private TextView channelTextView;
     private FloatingActionButton fab;
     private static TextView output;
+    private static BarChart barChart;
+    private static int[] data;
 
     private static final String USB_PERMISSION_STRING = "com.csr460.iskipper_android";
 
@@ -51,6 +60,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         channelSpinner.setAdapter(adapter);
         channelTextView = (TextView) findViewById(R.id.channelTextView);
         output = (TextView) findViewById(R.id.output);
+        barChart = (BarChart) findViewById(R.id.barChart);
+        initBArChart();
 
         fab = (FloatingActionButton) findViewById(R.id.fab);
         fab.setEnabled(false);
@@ -133,6 +144,19 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         return true;
     }
 
+    private void initBArChart(){
+        List<BarEntry> entries = new ArrayList<BarEntry>();
+        entries.add(new BarEntry(1f, 0));
+        entries.add(new BarEntry(2f, 0));
+        entries.add(new BarEntry(3f, 0));
+        entries.add(new BarEntry(4f, 0));
+        entries.add(new BarEntry(5f, 0));
+        BarDataSet dataSet = new BarDataSet(entries, "statics");
+        BarData barData = new BarData(dataSet);
+        barChart.setData(barData);
+        barChart.invalidate();
+    }
+
 
     private void setOnClickListener() {
         findViewById(R.id.connectButton).setOnClickListener(v -> {
@@ -157,6 +181,17 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     }
 
     public static void showStatis(int a, int b, int c, int d, int e, int total) {
+        data = new int[]{a, b, c};
+        List<BarEntry> entries = new ArrayList<BarEntry>();
+        entries.add(new BarEntry(1f, a));
+        entries.add(new BarEntry(2f, b));
+        entries.add(new BarEntry(3f, c));
+        entries.add(new BarEntry(4f, d));
+        entries.add(new BarEntry(5f, e));
+        BarDataSet dataSet = new BarDataSet(entries, "statics");
+        BarData barData = new BarData(dataSet);
+        barChart.setData(barData);
+        barChart.invalidate();
         output.setText("A: " + a + "  B: " + b + "  C:  " + c + "  D: " + d + "  E: " + e);
     }
 
