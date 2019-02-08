@@ -26,6 +26,8 @@ import com.csr460.iSkipper.support.AnswerPacketHashMap;
 import com.csr460.iSkipper.support.IClickerChannel;
 import com.csr460.iskipper_android.device.SerialAdapter;
 import com.github.mikephil.charting.charts.BarChart;
+import com.github.mikephil.charting.components.XAxis;
+import com.github.mikephil.charting.components.YAxis;
 import com.github.mikephil.charting.data.BarData;
 import com.github.mikephil.charting.data.BarDataSet;
 import com.github.mikephil.charting.data.BarEntry;
@@ -146,11 +148,22 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
     private void initBArChart(){
         List<BarEntry> entries = new ArrayList<BarEntry>();
-        entries.add(new BarEntry(1f, 0));
-        entries.add(new BarEntry(2f, 0));
-        entries.add(new BarEntry(3f, 0));
-        entries.add(new BarEntry(4f, 0));
-        entries.add(new BarEntry(5f, 0));
+
+        //let the bar chart has white background
+        XAxis xAxis = barChart.getXAxis();
+        xAxis.setDrawAxisLine(false);
+        xAxis.setDrawGridLines(false);
+        YAxis left = barChart.getAxisLeft();
+        YAxis right = barChart.getAxisRight();
+        left.setDrawAxisLine(false);
+        left.setDrawGridLines(false);
+        right.setDrawAxisLine(false);
+        right.setDrawGridLines(false);
+        xAxis.setDrawLabels(false);
+        left.setDrawLabels(false);
+        right.setDrawLabels(false);
+        left.setDrawZeroLine(true);
+        
         BarDataSet dataSet = new BarDataSet(entries, "statics");
         BarData barData = new BarData(dataSet);
         barChart.setData(barData);
