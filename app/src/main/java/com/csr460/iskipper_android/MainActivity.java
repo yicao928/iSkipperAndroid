@@ -15,6 +15,7 @@ import android.support.v7.widget.Toolbar;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.ArrayAdapter;
+import android.widget.Button;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -38,7 +39,7 @@ import java.util.List;
 import cn.wch.ch34xuartdriver.CH34xUARTDriver;
 
 
-public class MainActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener {
+public class MainActivity extends AppCompatActivity implements View.OnClickListener {
 
     private volatile Emulator emulator;
     private TextView channelTextView;
@@ -46,6 +47,9 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     private static TextView output;
     private static BarChart barChart;
     private static int[] data;
+    private Button captureButtonl;
+    private Spinner channelSpinner;
+    private Button connectButton;
 
     private static final String USB_PERMISSION_STRING = "com.csr460.iskipper_android";
 
@@ -56,7 +60,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
-        Spinner channelSpinner = (Spinner) findViewById(R.id.channelSpinner);
+        channelSpinner = (Spinner) findViewById(R.id.channelSpinner);
         ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(this, R.array.channel_array, android.R.layout.simple_spinner_item);
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         channelSpinner.setAdapter(adapter);
@@ -65,14 +69,14 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         barChart = (BarChart) findViewById(R.id.barChart);
         initBArChart();
 
+        captureButtonl = findViewById(R.id.captureButton);
+        captureButtonl.setEnabled(false);
+        captureButtonl.setOnClickListener(this);
+        connectButton = findViewById(R.id.connectButton);
+        connectButton.setOnClickListener(this);
         fab = (FloatingActionButton) findViewById(R.id.fab);
         fab.setEnabled(false);
         fab.setOnClickListener(v -> {
-            if (emulator.changeChannel(IClickerChannel.valueOf(channelSpinner.getSelectedItem().toString())))
-                showMessage("On channel " + channelSpinner.getSelectedItem().toString());
-            (new Thread(() -> {
-                emulator.startCapture(new CaptureHandlerOnUI(new AnswerPacketHashMap(), this));
-            })).start();
         });
 
 
@@ -81,11 +85,10 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         drawer.addDrawerListener(toggle);
         toggle.syncState();
 
-        NavigationView navigationView = (NavigationView) findViewById(R.id.nav_view);
-        navigationView.setNavigationItemSelectedListener(this);
+//        NavigationView navigationView = (NavigationView) findViewById(R.id.nav_view);
+//        navigationView.setNavigationItemSelectedListener(this);
         //Auto-generated above
         App.driver = new CH34xUARTDriver((UsbManager) getSystemService(Context.USB_SERVICE), this, USB_PERMISSION_STRING);//Initialize CH34X Driver
-        setOnClickListener();
 
     }
 
@@ -121,31 +124,6 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         return super.onOptionsItemSelected(item);
     }
 
-    @SuppressWarnings("StatementWithEmptyBody")
-    @Override
-    public boolean onNavigationItemSelected(MenuItem item) {
-        // Handle navigation view item clicks here.
-        int id = item.getItemId();
-
-        if (id == R.id.nav_camera) {
-            // Handle the camera action
-        } else if (id == R.id.nav_gallery) {
-
-        } else if (id == R.id.nav_slideshow) {
-
-        } else if (id == R.id.nav_manage) {
-
-        } else if (id == R.id.nav_share) {
-
-        } else if (id == R.id.nav_send) {
-
-        }
-
-        DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
-        drawer.closeDrawer(GravityCompat.START);
-        return true;
-    }
-
     private void initBArChart(){
         List<BarEntry> entries = new ArrayList<BarEntry>();
 
@@ -171,28 +149,6 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     }
 
 
-    private void setOnClickListener() {
-        findViewById(R.id.connectButton).setOnClickListener(v -> {
-            v.setEnabled(false);
-            SerialAdapter serial = new SerialAdapter(App.driver);
-            if (!serial.usbFeatureSupported() || !serial.openDevice() || !serial.configPorts()) {
-                v.setEnabled(true);
-                return;
-            }
-            emulator = new Emulator(serial);
-            (new Thread(() -> {
-                emulator.initialize();
-                this.runOnUiThread(() -> {
-                    if (emulator.isAvailable()) {
-                        showMessage("Success");
-                        v.setEnabled(!emulator.isAvailable());
-                        fab.setEnabled(emulator.isAvailable());
-                    }
-                });
-            })).start();
-        });
-    }
-
     public static void showStatis(int a, int b, int c, int d, int e, int total) {
         data = new int[]{a, b, c};
         List<BarEntry> entries = new ArrayList<BarEntry>();
@@ -210,5 +166,39 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
     private void showMessage(String msg) {
         Toast.makeText(this, msg, Toast.LENGTH_SHORT).show();
+    }
+
+    @Override
+    public void onClick(View v) {
+        switch (v.getId()){
+            case R.id.connectButton:
+                v.setEnabled(false);
+                SerialAdapter serial = new SerialAdapter(App.driver);
+                if (!serial.usbFeatureSupported() || !serial.openDevice() || !serial.configPorts()) {
+                    v.setEnabled(true);
+                    return;
+                }
+                emulator = new Emulator(serial);
+                (new Thread(() -> {
+                    emulator.initialize();
+                    this.runOnUiThread(() -> {
+                        if (emulator.isAvailable()) {
+                            showMessage("Success");
+                            v.setEnabled(!emulator.isAvailable());
+                            captureButtonl.setEnabled(emulator.isAvailable());
+                        }
+                    });
+                })).start();
+                break;
+            case R.id.captureButton:
+                if (emulator.changeChannel(IClickerChannel.valueOf(channelSpinner.getSelectedItem().toString())))
+                    showMessage("On channel " + channelSpinner.getSelectedItem().toString());
+                (new Thread(() -> {
+                    emulator.startCapture(new CaptureHandlerOnUI(new AnswerPacketHashMap(), this));
+                })).start();
+                captureButtonl.setEnabled(false);
+                break;
+
+        }
     }
 }
