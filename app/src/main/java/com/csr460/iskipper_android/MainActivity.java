@@ -85,6 +85,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         fab = (FloatingActionButton) findViewById(R.id.fab);
         fab.setEnabled(false);
         fab.setOnClickListener(v -> {
+            //send answer
             try{
                 emulator.submitAnswer(Answer.valueOf(answerSpinner.getSelectedItem().toString()));
             }catch (Exception e){
