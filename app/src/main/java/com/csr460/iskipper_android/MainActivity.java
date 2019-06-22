@@ -23,6 +23,7 @@ import android.widget.Toast;
 
 import com.csr460.iSkipper.emulator.Emulator;
 import com.csr460.iSkipper.handler.CaptureHandler;
+import com.csr460.iSkipper.support.Answer;
 import com.csr460.iSkipper.support.AnswerPacketHashMap;
 import com.csr460.iSkipper.support.IClickerChannel;
 import com.csr460.iskipper_android.device.SerialAdapter;
@@ -50,6 +51,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private Button captureButtonl;
     private Spinner channelSpinner;
     private Button connectButton;
+    private Spinner answerSpinner;
 
     private static final String USB_PERMISSION_STRING = "com.csr460.iskipper_android";
 
@@ -64,6 +66,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(this, R.array.channel_array, android.R.layout.simple_spinner_item);
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         channelSpinner.setAdapter(adapter);
+
+        answerSpinner = findViewById(R.id.answerSpinner);
+        ArrayAdapter<CharSequence> answersAdapter = ArrayAdapter.createFromResource(this, R.array.answer_array, android.R.layout.simple_spinner_item);
+        answersAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        answerSpinner.setAdapter(answersAdapter);
+
         channelTextView = (TextView) findViewById(R.id.channelTextView);
         output = (TextView) findViewById(R.id.output);
         barChart = (BarChart) findViewById(R.id.barChart);
@@ -77,6 +85,13 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         fab = (FloatingActionButton) findViewById(R.id.fab);
         fab.setEnabled(false);
         fab.setOnClickListener(v -> {
+            try{
+                emulator.submitAnswer(Answer.valueOf(answerSpinner.getSelectedItem().toString()));
+            }catch (Exception e){
+                this.showMessage("Send answer fail");
+                return;
+            }
+            this.showMessage("send answer " + answerSpinner.getSelectedItem().toString());
         });
 
 
@@ -171,6 +186,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     @Override
     public void onClick(View v) {
         switch (v.getId()){
+            //open device
             case R.id.connectButton:
                 v.setEnabled(false);
                 SerialAdapter serial = new SerialAdapter(App.driver);
@@ -186,10 +202,13 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                             showMessage("Success");
                             v.setEnabled(!emulator.isAvailable());
                             captureButtonl.setEnabled(emulator.isAvailable());
+                            fab.setEnabled(emulator.isAvailable());
                         }
                     });
                 })).start();
                 break;
+
+                //start capture answers
             case R.id.captureButton:
                 if (emulator.changeChannel(IClickerChannel.valueOf(channelSpinner.getSelectedItem().toString())))
                     showMessage("On channel " + channelSpinner.getSelectedItem().toString());
@@ -198,7 +217,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 })).start();
                 captureButtonl.setEnabled(false);
                 break;
-
         }
     }
 }
