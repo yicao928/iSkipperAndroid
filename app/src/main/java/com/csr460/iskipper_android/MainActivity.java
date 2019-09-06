@@ -1,12 +1,11 @@
 package com.csr460.iskipper_android;
 
 import android.content.Context;
+import android.content.Intent;
 import android.hardware.usb.UsbManager;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
-import android.support.design.widget.Snackbar;
 import android.view.View;
-import android.support.design.widget.NavigationView;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
@@ -22,10 +21,11 @@ import android.widget.Toast;
 
 
 import com.csr460.iSkipper.emulator.Emulator;
-import com.csr460.iSkipper.handler.CaptureHandler;
+import com.csr460.iSkipper.handler.PrintHandler;
 import com.csr460.iSkipper.support.Answer;
 import com.csr460.iSkipper.support.AnswerPacketHashMap;
 import com.csr460.iSkipper.support.IClickerChannel;
+import com.csr460.iSkipper.support.IClickerID;
 import com.csr460.iskipper_android.device.SerialAdapter;
 import com.github.mikephil.charting.charts.BarChart;
 import com.github.mikephil.charting.components.XAxis;
@@ -34,6 +34,10 @@ import com.github.mikephil.charting.data.BarData;
 import com.github.mikephil.charting.data.BarDataSet;
 import com.github.mikephil.charting.data.BarEntry;
 
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -52,13 +56,16 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private Spinner channelSpinner;
     private Button connectButton;
     private Spinner answerSpinner;
+    private Button manageIDBUtton;
 
     private static final String USB_PERMISSION_STRING = "com.csr460.iskipper_android";
+    private static ArrayList<String> IDList;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
@@ -77,6 +84,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         barChart = (BarChart) findViewById(R.id.barChart);
         initBArChart();
 
+        manageIDBUtton = (Button)findViewById(R.id.manageIDBUtton);
+        manageIDBUtton.setOnClickListener(this);
         captureButtonl = findViewById(R.id.captureButton);
         captureButtonl.setEnabled(false);
         captureButtonl.setOnClickListener(this);
@@ -86,13 +95,19 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         fab.setEnabled(false);
         fab.setOnClickListener(v -> {
             //send answer
-            try{
-                emulator.submitAnswer(Answer.valueOf(answerSpinner.getSelectedItem().toString()));
-            }catch (Exception e){
-                this.showMessage("Send answer fail");
-                return;
-            }
-            this.showMessage("send answer " + answerSpinner.getSelectedItem().toString());
+            (new Thread(() ->{
+                if(!emulator.isAvailable()){
+                    emulator.stopAndGoStandby();
+                }
+                while (!emulator.startSubmitMode(new PrintHandler()))
+                    emulator.stopAndGoStandby();
+                for(int i = 0; i < IDList.size(); i++){
+                    emulator.submitInSubmitMode(IClickerID.idFromString(IDList.get(i)), Answer.valueOf(answerSpinner.getSelectedItem().toString()));
+                    emulator.submitInSubmitMode(IClickerID.idFromString(IDList.get(i)), Answer.valueOf(answerSpinner.getSelectedItem().toString()));
+                    emulator.submitInSubmitMode(IClickerID.idFromString(IDList.get(i)), Answer.valueOf(answerSpinner.getSelectedItem().toString()));
+                }
+                emulator.stopAndGoStandby();
+            })).start();
         });
 
 
@@ -106,6 +121,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         //Auto-generated above
         App.driver = new CH34xUARTDriver((UsbManager) getSystemService(Context.USB_SERVICE), this, USB_PERMISSION_STRING);//Initialize CH34X Driver
 
+        IDList = new ArrayList<>();
+        readIDList();
     }
 
     @Override
@@ -134,7 +151,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         //noinspection SimplifiableIfStatement
         if (id == R.id.action_settings) {
-            return true;
+            showMessage("!!!");
         }
 
         return super.onOptionsItemSelected(item);
@@ -211,13 +228,58 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
                 //start capture answers
             case R.id.captureButton:
-                if (emulator.changeChannel(IClickerChannel.valueOf(channelSpinner.getSelectedItem().toString())))
-                    showMessage("On channel " + channelSpinner.getSelectedItem().toString());
-                (new Thread(() -> {
-                    emulator.startCapture(new CaptureHandlerOnUI(new AnswerPacketHashMap(), this));
-                })).start();
-                captureButtonl.setEnabled(false);
+                startCapture();
+                break;
+
+            case R.id.manageIDBUtton:
+                Intent intent = new Intent(MainActivity.this, ManageID.class);
+                startActivityForResult(intent, 0);
                 break;
         }
     }
+
+    private void readIDList(){
+        try{
+            FileInputStream fis = openFileInput("IDList.txt");
+            ObjectInputStream ois = new ObjectInputStream(fis);
+            IDList = (ArrayList<String>)ois.readObject();
+            ois.close();
+        }
+        catch (Exception e){
+            saveIDList();
+        }
+    }
+
+    private void saveIDList(){
+        try{
+            FileOutputStream fos = openFileOutput("IDList.txt", MODE_PRIVATE);
+            ObjectOutputStream oos = new ObjectOutputStream((fos));
+            oos.writeObject(IDList);
+            oos.close();
+        }
+        catch (Exception e){
+            showMessage("save ID fail");
+        }
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data){
+        switch (requestCode){
+            case 0:
+                String newIDString = data.getStringExtra("newID");
+                IDList.add(newIDString);
+                saveIDList();
+                break;
+        }
+    }
+
+    private void startCapture(){
+        if (emulator.changeChannel(IClickerChannel.valueOf(channelSpinner.getSelectedItem().toString())))
+            showMessage("On channel " + channelSpinner.getSelectedItem().toString());
+        (new Thread(() -> {
+            emulator.startCapture(new CaptureHandlerOnUI(new AnswerPacketHashMap(), this));
+        })).start();
+        captureButtonl.setEnabled(false);
+    }
+
 }
